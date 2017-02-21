@@ -68,6 +68,7 @@ import android.view.Display;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup.LayoutParams;
 import android.view.Window;
@@ -84,7 +85,7 @@ public class nftBookActivity extends Activity {
 
     // Load the native libraries.
     static {
-        
+
         System.loadLibrary("nftBookNative");
     }
 
@@ -115,6 +116,8 @@ public class nftBookActivity extends Activity {
     public static native void nativeDisplayParametersChanged(int orientation, int w, int h, int dpi); // 0 = portrait, 1 = landscape (device rotated 90 degrees ccw), 2 = portrait upside down, 3 = landscape reverse (device rotated 90 degrees cw).
 
     public static native void nativeSetInternetState(int state);
+
+    public static native void nativeModelRotate(int id, float deltaTheta);
 
     private GLSurfaceView glView;
     private CameraSurface camSurface;
@@ -306,5 +309,28 @@ public class nftBookActivity extends Activity {
         Log.e(TAG, "handleUncaughtException(): thread, \"" + thread.getName() + "\" exception, \"" + e.getMessage() + "\"");
         e.printStackTrace();
         return;
+    }
+
+    // Handle the touch event, and rotate the model
+    private float mPrevX;
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        int action = event.getAction();
+
+        if (action == MotionEvent.ACTION_DOWN) {
+            mPrevX = event.getX();
+        } else if (action == MotionEvent.ACTION_MOVE) {
+            float x = event.getX();
+
+            // mapping the screen distance to the rotate angle.
+            float delta = (x - mPrevX)*3.14f/360.0f;
+            mPrevX = x;
+
+            // TODO : Add another 3 arguments (x, y, z)
+            //        if you want to make rotate along with any axis.
+            nativeModelRotate(/*id=*/1, delta);
+        }
+        return false;
     }
 }

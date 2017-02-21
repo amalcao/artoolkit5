@@ -73,6 +73,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <AR/arosg.h>
+#include <osg/Matrix>
 
 typedef struct _VEObject {
     int modelIndex;
@@ -416,3 +417,16 @@ void VirtualEnvironmentSetTime(double timeInSeconds)
     arOSGSetDrawTime(VirtualEnvironment_AROSG, timeInSeconds);
 }
 
+void VirtualEnvironmentHandleModelRotate(int id, float deltaTheta) {
+    if (!VirtualEnvironment_AROSG) return;
+
+
+    float M[16];
+    arOSGGetModelLocalPose(VirtualEnvironment_AROSG, id, M);
+
+    osg::Matrixf matrix;
+    matrix.set(M);
+    matrix.preMultRotate(osg::Quat(deltaTheta, osg::Vec3f(0.0f, 0.0f, 1.0f)));
+
+    arOSGSetModelLocalPose(VirtualEnvironment_AROSG, id, matrix.ptr());
+}
