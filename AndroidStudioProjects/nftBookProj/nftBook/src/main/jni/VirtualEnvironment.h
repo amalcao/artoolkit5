@@ -75,6 +75,8 @@ void VirtualEnvironmentHandleARViewDrawOverlay(void);
 
 void VirtualEnvironmentSetTime(double timeInSeconds);
 
+void VirtualEnvironmentHandleModelRotate(int id, float deltaTheta);
+
 #ifdef __cplusplus
 }
 #endif

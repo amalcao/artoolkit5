@@ -42,10 +42,10 @@ APP_BUILD_SCRIPT := $(APP_PROJECT_PATH)/Android-ARWrapper.mk
 APP_MODULES		:= ARWrapper
 #APP_OPTIM		:= release
 #APP_OPTIM		:= debug
-#APP_ABI			:= all
-#APP_ABI		:= armeabi armeabi-v7a x86 mips
-APP_ABI		:= armeabi armeabi-v7a x86 mips arm64-v8a x86_64 mips64
+#APP_ABI:=armeabi-v7a arm64-v8a
+#APP_ABI:=armeabi-v7a arm64-v8a
+APP_ABI:=armeabi-v7a arm64-v8a
 APP_PLATFORM    := android-15
-APP_STL 		:= c++_shared
-APP_CPPFLAGS 	:= -frtti -fexceptions
+APP_STL 		:= gnustl_static
+APP_CPPFLAGS 	:= -frtti -fexceptions -std=c++11
 NDK_TOOLCHAIN_VERSION := clang

@@ -61,7 +61,7 @@ public class SimpleNativeRenderer extends ARRenderer {
 
     // Load the native libraries.
     static {
-        System.loadLibrary("c++_shared");
+        
         System.loadLibrary("ARWrapper");
         System.loadLibrary("ARWrapperNativeExample");
     }

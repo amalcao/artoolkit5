@@ -62,7 +62,9 @@ define add_artoolkit_module
 	include $(PREBUILT_STATIC_LIBRARY)
 endef
 ARTOOLKIT_LIBS := eden argsub_es armulti arosg ar aricp arvideo util
-ARTOOLKIT_LIBS += OpenThreads osg osgAnimation osgDB osgFX osgGA osgParticle osgPresentation osgShadow osgSim osgTerrain osgText osgViewer osgUtil osgVolume osgWidget osgdb_osg osgdb_ive osgdb_jpeg jpeg osgdb_gif gif osgdb_tiff tiff osgdb_bmp osgdb_png png osgdb_tga osgdb_freetype ft2 osgdb_deprecated_osg osgdb_deprecated_osganimation osgdb_deprecated_osgfx  osgdb_deprecated_osgparticle osgdb_deprecated_osgshadow osgdb_deprecated_osgsim osgdb_deprecated_osgterrain osgdb_deprecated_osgtext osgdb_deprecated_osgviewer osgdb_deprecated_osgvolume osgdb_deprecated_osgwidget
+ARTOOLKIT_LIBS += OpenThreads osg osgAnimation osgDB osgFX osgGA osgParticle osgPresentation osgShadow osgSim osgTerrain osgText osgViewer osgUtil osgVolume osgWidget osgManipulator osgdb_osg osgdb_ive osgdb_dds osgdb_jpeg jpeg osgdb_gif gif osgdb_tiff tiff osgdb_bmp osgdb_png png osgdb_tga osgdb_freetype ft2 osgdb_obj osgdb_deprecated_osg osgdb_deprecated_osganimation osgdb_deprecated_osgfx  osgdb_deprecated_osgparticle osgdb_deprecated_osgshadow osgdb_deprecated_osgsim osgdb_deprecated_osgterrain osgdb_deprecated_osgtext osgdb_deprecated_osgviewer osgdb_deprecated_osgvolume osgdb_deprecated_osgwidget osgdb_rgb osgdb_serializers_osg osgdb_serializers_osgparticle osgdb_serializers_osganimation osgdb_serializers_osgfx osgdb_serializers_osgga osgdb_serializers_osgshadow osgdb_serializers_osgsim osgdb_serializers_osgtext osgdb_serializers_osgterrain osgdb_serializers_osgviewer osgdb_serializers_osgvolume
+
+
 LOCAL_PATH := $(ARTOOLKIT_LIBDIR)
 $(foreach module,$(ARTOOLKIT_LIBS),$(eval $(call add_artoolkit_module,$(module))))
 
@@ -106,7 +108,8 @@ LOCAL_C_INCLUDES += $(ARTOOLKIT_DIR)/../include/android $(ARTOOLKIT_DIR)/../incl
 LOCAL_LDLIBS += -llog -lGLESv1_CM -lz
 LOCAL_WHOLE_STATIC_LIBRARIES += ar
 LOCAL_STATIC_LIBRARIES += eden argsub_es armulti arosg aricp arvideo util cpufeatures
-LOCAL_STATIC_LIBRARIES += osgdb_osg osgdb_ive osgdb_jpeg jpeg osgdb_gif gif osgdb_tiff tiff osgdb_bmp osgdb_png png osgdb_tga osgdb_freetype ft2 osgAnimation osgFX osgParticle osgPresentation osgShadow osgSim osgTerrain osgText osgVolume osgWidget osgViewer osgGA osgDB osgUtil osgdb_deprecated_osg osgdb_deprecated_osganimation osgdb_deprecated_osgfx  osgdb_deprecated_osgparticle osgdb_deprecated_osgshadow osgdb_deprecated_osgsim osgdb_deprecated_osgterrain osgdb_deprecated_osgtext osgdb_deprecated_osgviewer osgdb_deprecated_osgvolume osgdb_deprecated_osgwidget osg OpenThreads
+
+LOCAL_STATIC_LIBRARIES += osgdb_osg osgdb_ive osgdb_dds osgdb_jpeg jpeg osgdb_gif gif osgdb_tiff tiff osgdb_bmp osgdb_png png osgdb_tga osgdb_freetype ft2  osgdb_obj osgdb_deprecated_osg osgdb_deprecated_osganimation osgdb_deprecated_osgfx  osgdb_deprecated_osgparticle osgdb_deprecated_osgshadow osgdb_deprecated_osgsim osgdb_deprecated_osgterrain osgdb_deprecated_osgtext osgdb_deprecated_osgviewer osgdb_deprecated_osgvolume osgdb_deprecated_osgwidget  osgdb_rgb osgdb_serializers_osg osgdb_serializers_osgparticle osgdb_serializers_osganimation osgdb_serializers_osgfx osgdb_serializers_osgga osgdb_serializers_osgshadow osgdb_serializers_osgtext osgdb_serializers_osgterrain osgdb_serializers_osgviewer osgdb_serializers_osgvolume osgdb_serializers_osgsim osgAnimation osgFX osgParticle osgPresentation osgShadow osgSim osgTerrain osgText osgVolume osgWidget osgViewer osgGA osgDB osgUtil osgManipulator osg OpenThreads
 #LOCAL_SHARED_LIBRARIES += $(CURL_LIBS)
 LOCAL_STATIC_LIBRARIES += $(CURL_LIBS)
 

@@ -77,7 +77,7 @@ public class calib_optical_Activity extends Activity {
 
     // Load the native libraries.
     static {
-        System.loadLibrary("c++_shared");
+        
         System.loadLibrary("calib_optical_Native");
     }
 

@@ -88,7 +88,7 @@ public class ARMovieActivity extends Activity {
 
     // Load the native libraries.
     static {
-        System.loadLibrary("c++_shared");
+        
         System.loadLibrary("ARMovieNative");
     }
 
