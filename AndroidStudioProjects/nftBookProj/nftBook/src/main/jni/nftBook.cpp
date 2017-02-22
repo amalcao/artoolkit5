@@ -795,7 +795,7 @@ static bool layoutARView(void)
     int contentWidth = videoWidth;
     int contentHeight = videoHeight;
 
-	if (gContentMode == ARViewContentModeScaleToFill) {
+	  if (gContentMode == ARViewContentModeScaleToFill) {
         w = backingWidth;
         h = backingHeight;
     } else {
@@ -832,7 +832,7 @@ static bool layoutARView(void)
     else bottom = (backingHeight - h) / 2;
 
     glViewport(left, bottom, w, h);
-    
+
     viewPort[viewPortIndexLeft] = left;
     viewPort[viewPortIndexBottom] = bottom;
     viewPort[viewPortIndexWidth] = w;
@@ -871,6 +871,16 @@ static bool initARView(void)
 #ifdef DEBUG
     LOGI("argl setup OK.\n");
 #endif        
+  
+    // Fix the screen coordinate for portrait mode.
+    if (gDisplayOrientation == 0) {
+      int i;
+      for (i = 0; i < 4; ++i) {
+        ARdouble temp = cameraLens[4*i];
+        cameraLens[4*i] = cameraLens[4*i+1];
+        cameraLens[4*i+1] = -temp;
+      }
+    }
 
     // Load objects (i.e. OSG models).
     VirtualEnvironmentInit(objectDataFilename);
