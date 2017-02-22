@@ -906,4 +906,14 @@ extern "C" {
         free (arOsg);
     }
     
+    void *arOSGGetModelRawPtrById(AROSG *arOsg, int index) {
+        if (!arOsg) return NULL;
+
+        if (index < 0 || index >= AR_OSG_MODELS_MAX) return NULL;
+        if (!arOsg->models[index]) {
+            NULL;
+        }
+
+        return arOsg->models[index]->getChild(0);
+    }
 } // extern "C"

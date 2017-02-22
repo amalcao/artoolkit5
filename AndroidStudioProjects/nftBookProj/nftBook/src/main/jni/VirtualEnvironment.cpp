@@ -74,6 +74,8 @@
 #include <stdio.h>
 #include <AR/arosg.h>
 #include <osg/Matrix>
+#include <osg/MatrixTransform>
+#include <osg/BoundingSphere>
 
 typedef struct _VEObject {
     int modelIndex;
@@ -420,13 +422,28 @@ void VirtualEnvironmentSetTime(double timeInSeconds)
 void VirtualEnvironmentHandleModelRotate(int id, float deltaTheta) {
     if (!VirtualEnvironment_AROSG) return;
 
+    osg::Node* node = reinterpret_cast<osg::Node*>(
+                      arOSGGetModelRawPtrById(VirtualEnvironment_AROSG, id) );
+    
+    if (!node) return;
 
-    float M[16];
-    arOSGGetModelLocalPose(VirtualEnvironment_AROSG, id, M);
+    osg::MatrixTransform *trans = dynamic_cast<osg::MatrixTransform*>(node);
 
-    osg::Matrixf matrix;
-    matrix.set(M);
-    matrix.preMultRotate(osg::Quat(deltaTheta, osg::Vec3f(0.0f, 0.0f, 1.0f)));
+    if (!trans) {
+      ARLOGe("not a matrix transform !!\n");
+      return;
+    }
 
-    arOSGSetModelLocalPose(VirtualEnvironment_AROSG, id, matrix.ptr());
+    const osg::BoundingSphere& bsphere = trans->getBound();
+    osg::Vec3f center = bsphere.center();
+
+    /*ARLOGi("center point: x = %f, y = %f, z = %f, r = %f", 
+            center.x(), center.y(), center.z(), bsphere.radius());*/
+
+    osg::Matrix mat = trans->getMatrix();
+    mat.postMultTranslate(osg::Vec3f(-center.x(), -center.y(), 0));
+    mat.postMultRotate(osg::Quat(deltaTheta, osg::Vec3f(0, 0, 1)));
+    mat.postMultTranslate(osg::Vec3f(center.x(), center.y(), 0));
+
+    trans->setMatrix(mat);
 }

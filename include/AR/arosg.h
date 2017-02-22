@@ -554,6 +554,16 @@ AR_DLL_API     void arOSGHandleKeyboard(AROSG *arOsg, int key, int x, int y);
 */
 AR_DLL_API     void arOSGFinal(AROSG *arOsg);
 
+/*!
+ *  @function
+ *  @abstract  Return the pointer to OSG model by the given id.
+ *  @param     arOsg Pointer to the AROSG settings structure to be disposed of.
+    @param     index The index of the model to calculate the intersection of. See arOSGLoadModel().
+ *  @return    A pointer to osg::Node or NULL.
+ *
+ */
+AR_DLL_API     void* arOSGGetModelRawPtrById(AROSG *arOsg, int id);
+
 #ifdef __cplusplus
 }
 #endif
