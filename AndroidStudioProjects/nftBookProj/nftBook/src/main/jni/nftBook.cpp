@@ -137,7 +137,6 @@ extern "C" {
 	JNIEXPORT void JNICALL JNIFUNCTION_NATIVE(nativeDisplayParametersChanged(JNIEnv* env, jobject object, jint orientation, jint width, jint height, jint dpi));
 	JNIEXPORT void JNICALL JNIFUNCTION_NATIVE(nativeDrawFrame(JNIEnv* env, jobject obj));
 	JNIEXPORT void JNICALL JNIFUNCTION_NATIVE(nativeSetInternetState(JNIEnv* env, jobject obj, jint state));
-  JNIEXPORT void JNICALL JNIFUNCTION_NATIVE(nativeModelRotate(JNIEnv* env, jobject, jint id, jfloat deltaTheta));
 };
 
 static void nativeVideoGetCparamCallback(const ARParam *cparam, void *userdata);
@@ -971,8 +970,4 @@ JNIEXPORT void JNICALL JNIFUNCTION_NATIVE(nativeDrawFrame(JNIEnv* env, jobject o
     glColor4ub(255, 255, 255, 255);
     glDrawArrays(GL_LINE_LOOP, 0, 4);
 #endif
-}
-
-JNIEXPORT void JNICALL JNIFUNCTION_NATIVE(nativeModelRotate(JNIEnv* env, jobject obj, jint id, jfloat deltaTheta)) {
-  VirtualEnvironmentHandleModelRotate(id, deltaTheta);
 }
