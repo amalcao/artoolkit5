@@ -29,8 +29,14 @@ android {
     }
 }
 
+repositories {
+    mavenCentral()
+    mavenLocal()
+}
+
 dependencies {
     //compile 'com.android.support:support-v4:23.0.1'   // Only required when the target device API level is greater than
     //compile 'com.android.support:appcompat-v7:23.0.1' // the compile and target of the app being deployed to the device
     compile project(':aRBaseLib')
+    compile 'com.github.markushi:circlebutton:1.1'
 }

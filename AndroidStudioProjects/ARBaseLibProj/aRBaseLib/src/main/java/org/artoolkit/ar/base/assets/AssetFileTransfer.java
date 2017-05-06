@@ -112,7 +112,8 @@ public class AssetFileTransfer {
                 tempFile = File.createTempFile("unpacker", null, Environment.getExternalStorageDirectory());
                 //Log.i(TAG, "Created temp file for unpacking: " + tempFile.getPath());
             } catch (IOException ioe) {
-                throw new AssetFileTransferException("Error creating temp file: " + tempFile.getPath(), ioe);
+                ioe.printStackTrace();
+                throw new AssetFileTransferException("Error creating temp file: " /*+ tempFile.getPath()*/, ioe);
             }
 
             // Copy asset to temporary file

@@ -185,7 +185,7 @@ public class CameraSurface extends SurfaceView implements SurfaceHolder.Callback
             String[] dims = camResolution.split("x", 2);
             Camera.Parameters parameters = camera.getParameters();
             parameters.setPreviewSize(Integer.parseInt(dims[0]), Integer.parseInt(dims[1]));
-            parameters.setPreviewFrameRate(30);
+            parameters.setPreviewFrameRate(15);
             camera.setParameters(parameters);
 
             parameters = camera.getParameters();

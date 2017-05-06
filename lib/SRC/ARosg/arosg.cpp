@@ -51,6 +51,7 @@
 #include <osg/Texture2D>
 #include <osg/TextureRectangle>
 #include <osgDB/FileNameUtils>
+#include <osgAnimation/BasicAnimationManager>
 
 #ifdef _WIN32
 #  include <windows.h>
@@ -61,6 +62,61 @@
 
 //#define DEBUG_AROSG_MODELLOADING // Uncomment to use color cubes rather than loading models.
 
+class AnimtkViewerModelController : public osg::Referenced {
+public:
+    AnimtkViewerModelController() : osg::Referenced(false) {}
+    
+    void setModel(osgAnimation::BasicAnimationManager *mgr) {
+      auto it = mgr->getAnimationList().begin(),
+          end = mgr->getAnimationList().end();
+      while (it != end) {
+        channels_[(*it)->getName()] = *it;
+        ARLOGi("Find animation '%s'\n", (*it)->getName().c_str());
+        ++it;
+      }
+
+      manager_ = mgr;
+    }
+
+    const osgAnimation::BasicAnimationManager* getModel() const {
+      return manager_.valid() ? manager_.get() : nullptr;
+    }
+
+    bool play(const std::string& name) {
+      if (manager_.valid()) { 
+        osgAnimation::AnimationMap::iterator it = 
+          name.length() ? channels_.find(name) : channels_.begin();
+        
+        if (it != channels_.end()) {
+          ARLOGi("Play animation '%s'!\n", name.c_str());
+          manager_->playAnimation(it->second.get());
+          return true;
+        }
+      }
+      ARLOGe("Cannot play animation '%s'!\n", name.c_str());
+      return false;
+    }
+
+    bool stop(const std::string& name) {
+      if (manager_.valid()) { 
+        osgAnimation::AnimationMap::iterator it = 
+          name.length() ? channels_.find(name) : channels_.begin();
+        
+        if (it != channels_.end()) {
+          manager_->stopAnimation(it->second.get());
+          return true;
+        }
+      }
+      
+      ARLOGe("Cannot stop animation '%s'!\n", name.c_str());
+      return false;
+    }
+
+private:
+    osg::ref_ptr<osgAnimation::BasicAnimationManager> manager_;
+    osgAnimation::AnimationMap channels_;
+};
+
 struct _AROSG {
     osg::ref_ptr<osgViewer::Viewer> viewer;
     osg::observer_ptr<osgViewer::GraphicsWindow> window;
@@ -69,6 +125,7 @@ struct _AROSG {
     osg::ref_ptr<osg::MatrixTransform> models[AR_OSG_MODELS_MAX];
     int frontFaceWinding;
     double time;
+    osg::ref_ptr<AnimtkViewerModelController> animCtrls[AR_OSG_MODELS_MAX];
 };
 
 static const std::string imageExtensions[] = {
@@ -77,6 +134,29 @@ static const std::string imageExtensions[] = {
     "pnm", "ppm", "pgm", "pbm", "pic", "hdr", "dds",
     "mov", "avi", "mpeg", "mpg", "mpe", "mpv", "mp4", "m4v", "dv", "flv", "m2v", "m1v",
     "" // List must end with empty string.
+};
+
+struct AnimationManagerFinder : public osg::NodeVisitor {
+    osgAnimation::BasicAnimationManager *am_;
+    AnimationManagerFinder(): 
+      osg::NodeVisitor(osg::NodeVisitor::TRAVERSE_ALL_CHILDREN), am_(nullptr) {}
+    
+    virtual ~AnimationManagerFinder() {}
+
+    virtual void apply(osg::Node &node) {
+      if (am_ != nullptr) return;
+
+      if (node.getUpdateCallback()) {
+        auto b = dynamic_cast<osgAnimation::AnimationManagerBase*>(
+                  node.getUpdateCallback() );
+        if (b) {
+          am_ = new osgAnimation::BasicAnimationManager(*b);
+          return;
+        }
+      }
+
+      traverse(node);
+    }
 };
 
 class ManageAnimationNodesVisitor : public osg::NodeVisitor
@@ -378,6 +458,8 @@ extern "C" {
         configTransform->addChild(model.get());
         
         arOsg->prevIndex = index; // Save for next time.
+
+        arOSGSetModelSkeletalAnimationPlay(arOsg, index, nullptr, 0);
         return (index);
     }
     
@@ -543,6 +625,38 @@ extern "C" {
         ss->setMode(GL_BLEND, (transparent ? osg::StateAttribute::ON : osg::StateAttribute::OFF));
         ss->setRenderingHint(transparent ? osg::StateSet::TRANSPARENT_BIN: osg::StateSet::OPAQUE_BIN);
         return (0);
+    }
+
+    int arOSGSetModelSkeletalAnimationPlay(AROSG *arOsg, const int index, const char *name, const int pause) {
+        if (!arOsg) return -1;
+        if (index < 0 || index > AR_OSG_MODELS_MAX) return -1;
+        if (!arOsg->models[index]) {
+            ARLOGe("Error: model not found while attempting to set model animation pause.\n");
+            return (-1);
+        }
+        
+        if (!arOsg->animCtrls[index].valid()) {
+          AnimationManagerFinder finder;
+          arOsg->models[index]->accept(finder);
+          if (finder.am_ == nullptr) {
+
+            ARLOGe("Error: am not found while attempting to set model animation pause.\n");
+            return -1;
+          }
+
+          arOsg->models[index]->setUpdateCallback(finder.am_);
+          AnimtkViewerModelController* ac = new AnimtkViewerModelController();
+          ac->setModel(finder.am_);
+
+          arOsg->animCtrls[index] = ac;
+        }
+
+        if (!name) name = "";
+
+        if (!pause)
+          return arOsg->animCtrls[index]->play(name);
+        
+        return arOsg->animCtrls[index]->stop(name);
     }
     
     int arOSGSetModelAnimationPause(AROSG *arOsg, const int index, const int pause)

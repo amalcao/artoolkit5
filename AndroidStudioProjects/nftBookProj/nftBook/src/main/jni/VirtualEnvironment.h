@@ -53,6 +53,8 @@
 #include <AR/ar.h>
 #include "ARMarkerNFT.h"
 
+#define DEBUG 1
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -75,7 +77,11 @@ void VirtualEnvironmentHandleARViewDrawOverlay(void);
 
 void VirtualEnvironmentSetTime(double timeInSeconds);
 
-void VirtualEnvironmentHandleModelRotate(int id, float deltaTheta);
+void VirtualEnvironmentHandleModelRotate(int id, float dx, float dy, float dz);
+void VirtualEnvironmentHandleModelScale(int id, float scale);
+
+void VirtualEnvironmentPlayPathAnimation(int id, int pause);
+void VirtualEnvironmentPlaySkeletalAnimation(int id, const char *name, int pause);
 
 #ifdef __cplusplus
 }

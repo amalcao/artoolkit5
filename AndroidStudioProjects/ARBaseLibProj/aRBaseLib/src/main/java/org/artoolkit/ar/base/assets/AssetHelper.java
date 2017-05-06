@@ -155,8 +155,15 @@ public class AssetHelper {
         // If needed, write a fresh copy of the folder to the cache.
         if (reCache) {
             deleteRecursive(cacheFolder); // Delete remnant, if any, of cached folder.
-            List<AssetFileTransfer> transfers = copyAssetFolder(assetBasePath, ctx.getCacheDir().getAbsolutePath()); // Recreate it.
+        }
+        else {
+            Log.i(TAG, "cacheAssetFolder(): Using cached folder '" + assetBasePath + "'.");
+        }
 
+
+        List<AssetFileTransfer> transfers = copyAssetFolder(assetBasePath, ctx.getCacheDir().getAbsolutePath()); // Recreate it.
+
+        if (reCache) {
             // Now write a new cache index inside the folder.
             BufferedWriter outBuf = null;
             try {
@@ -180,8 +187,6 @@ public class AssetHelper {
                     }
                 }
             }
-        } else {
-            Log.i(TAG, "cacheAssetFolder(): Using cached folder '" + assetBasePath + "'.");
         }
 
     }

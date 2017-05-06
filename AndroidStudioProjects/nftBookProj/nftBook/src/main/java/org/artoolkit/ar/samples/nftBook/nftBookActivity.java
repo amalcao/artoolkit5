@@ -56,6 +56,8 @@ import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
+import android.graphics.PixelFormat;
+import android.graphics.PorterDuff;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.opengl.GLSurfaceView;
@@ -65,15 +67,20 @@ import android.support.annotation.NonNull;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Display;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.MotionEvent;
+import android.view.ScaleGestureDetector;
+import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup.LayoutParams;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
+import android.widget.ImageButton;
+import android.widget.RelativeLayout;
 import android.widget.Toast;
 
 import org.artoolkit.ar.base.camera.CameraPreferencesActivity;
@@ -117,12 +124,21 @@ public class nftBookActivity extends Activity {
 
     public static native void nativeSetInternetState(int state);
 
-    public static native void nativeModelRotate(int id, float deltaTheta);
+    public static native void nativeModelRotate(int id, float deltaThetaX, float deltaThetaY, float deltaThetaZ);
+
+    public static native void nativeModelScale(int id, float scaleFactor);
+
+    public static native void nativePlayPathAnimation(int id, int pause);
+
+    public static native void nativePlaySkeletalAnimation(int id, String name, int pause);
 
     private GLSurfaceView glView;
     private CameraSurface camSurface;
+    private View actionLayer;
 
     private FrameLayout mainLayout;
+
+    private ScaleGestureDetector mScaleDetector;
 
     /**
      * Called when the activity is first created.
@@ -133,14 +149,12 @@ public class nftBookActivity extends Activity {
         super.onCreate(savedInstanceState);
 
         Thread.setDefaultUncaughtExceptionHandler(
-            new Thread.UncaughtExceptionHandler()
-            {
-                @Override
-                public void uncaughtException (Thread thread, Throwable e)
-                {
-                    handleUncaughtException(thread, e);
-                }
-            });
+                new Thread.UncaughtExceptionHandler() {
+                    @Override
+                    public void uncaughtException(Thread thread, Throwable e) {
+                        handleUncaughtException(thread, e);
+                    }
+                });
 
         boolean needActionBar = false;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
@@ -158,12 +172,44 @@ public class nftBookActivity extends Activity {
         }
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
-        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT); // Force portrait-only.
+        //setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT); // Force portrait-only.
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         updateNativeDisplayParameters();
 
         setContentView(R.layout.main);
 
+        LayoutInflater inflater = getLayoutInflater();
+        actionLayer = inflater.inflate(R.layout.action_layer, null);
+
+        View imgBtn = actionLayer.findViewById(R.id.buttonPlayPause);
+
+        imgBtn.setOnClickListener(new View.OnClickListener() {
+            private boolean mClicked = false;
+            @Override
+            public void onClick(View v) {
+                nativePlayPathAnimation(0, mClicked ? 0 : 1);
+                nativePlaySkeletalAnimation(0, "", mClicked ? 0 : 1);
+                mClicked = !mClicked;
+            }
+        });
+
+
         nftBookActivity.nativeCreate(this);
+
+        mScaleDetector = new ScaleGestureDetector(this, new ScaleGestureDetector.SimpleOnScaleGestureListener() {
+            private float mScaleFactor = 1.0f;
+
+            @Override
+            public boolean onScale(ScaleGestureDetector detector) {
+                mScaleFactor = detector.getScaleFactor();
+
+                // Don't let the object get too small or too large.
+                mScaleFactor = Math.max(0.1f, Math.min(mScaleFactor, 5.0f));
+
+                nativeModelScale(0, mScaleFactor);
+                return true;
+            }
+        });
     }
 
     @Override
@@ -203,11 +249,15 @@ public class nftBookActivity extends Activity {
         // Create/recreate the GL view.
         glView = new GLSurfaceView(this);
         //glView.setEGLConfigChooser(8, 8, 8, 8, 16, 0); // Do we actually need a transparent surface? I think not, (default is RGB888 with depth=16) and anyway, Android 2.2 barfs on this.
+        //glView.setZOrderOnTop(true);
+        //glView.getHolder().setFormat(PixelFormat.RGBA_8888);
         glView.setRenderer(new Renderer());
+        //glView.setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
         glView.setZOrderMediaOverlay(true); // Request that GL view's SurfaceView be on top of other SurfaceViews (including CameraPreview's SurfaceView).
 
-        mainLayout.addView(camSurface, new LayoutParams(128, 128));
+        mainLayout.addView(camSurface, new LayoutParams(LayoutParams.FILL_PARENT, LayoutParams.FILL_PARENT));
         mainLayout.addView(glView, new LayoutParams(LayoutParams.FILL_PARENT, LayoutParams.FILL_PARENT));
+        mainLayout.addView(actionLayer, new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
 
         if (glView != null) glView.onResume();
     }
@@ -223,6 +273,7 @@ public class nftBookActivity extends Activity {
         // with the camera preview gone.
         mainLayout.removeView(glView);
         mainLayout.removeView(camSurface);
+        mainLayout.removeView(actionLayer);
     }
 
     @Override
@@ -288,49 +339,87 @@ public class nftBookActivity extends Activity {
         if (requestCode == CaptureCameraPreview.REQUEST_CAMERA_PERMISSION_RESULT) {
             if (grantResults[0] != PackageManager.PERMISSION_GRANTED) {
                 Toast.makeText(getApplicationContext(),
-                    "Application will not run with camera access denied",
-                    Toast.LENGTH_LONG).show();
-            }
-            else if (1 <= permissions.length) {
+                        "Application will not run with camera access denied",
+                        Toast.LENGTH_LONG).show();
+            } else if (1 <= permissions.length) {
                 Toast.makeText(getApplicationContext(),
-                    String.format("Camera access permission \"%s\" allowed", permissions[0]),
-                    Toast.LENGTH_SHORT).show();
+                        String.format("Camera access permission \"%s\" allowed", permissions[0]),
+                        Toast.LENGTH_SHORT).show();
             }
             Log.i(TAG, "onRequestPermissionsResult(): reset ask for cam access perm");
             camSurface.resetGettingCameraAccessPermissionsFromUserState();
-        }
-        else
+        } else
             super.onRequestPermissionsResult(requestCode, permissions, grantResults);
     }
 
-    private void handleUncaughtException(Thread thread, Throwable e)
-    {
+    private void handleUncaughtException(Thread thread, Throwable e) {
         Log.e(TAG, "handleUncaughtException(): exception type, " + e.toString());
         Log.e(TAG, "handleUncaughtException(): thread, \"" + thread.getName() + "\" exception, \"" + e.getMessage() + "\"");
         e.printStackTrace();
         return;
     }
 
+
+
+    private interface MoveListener {
+        public void onMove(float deltaX, float deltaY);
+    }
+
     // Handle the touch event, and rotate the model
-    private float mPrevX;
+    private class MoveMotionDetector {
+        static private final float INVALID = -1.0f;
+
+        private float mPrevX = INVALID;
+        private float mPrevY = INVALID;
+
+        private MoveListener mMoveListener;
+
+        public MoveMotionDetector(MoveListener moveListener) {
+            this.mMoveListener = moveListener;
+        }
+
+        public void onTouchEvent(MotionEvent event) {
+
+            if (event.getPointerCount() > 1) {
+                mPrevX = INVALID;
+                mPrevY = INVALID;
+                return;
+            }
+
+            int action = event.getAction();
+
+            if (action == MotionEvent.ACTION_DOWN) {
+                mPrevX = event.getX();
+                mPrevY = event.getY();
+            } else if (action == MotionEvent.ACTION_MOVE &&
+                    mPrevX >= 0.0f && mPrevY >= 0.0f) {
+
+                float x = event.getX();
+                float y = event.getY();
+                mMoveListener.onMove(x - mPrevX, y - mPrevY);
+
+                mPrevX = x;
+                mPrevY = y;
+            } else {
+                mPrevX = INVALID;
+                mPrevY = INVALID;
+            }
+        }
+    }
+
+    private MoveMotionDetector mRotateDetector =
+            new MoveMotionDetector(new MoveListener() {
+                @Override
+                public void onMove(float dx, float dy) {
+                    // mapping the screen distance to the rotate angle.
+                    nativeModelRotate(0, dy*3.14f/360.0f, 0, dx*3.14f/360.0f);
+                }
+            });
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        int action = event.getAction();
-
-        if (action == MotionEvent.ACTION_DOWN) {
-            mPrevX = event.getX();
-        } else if (action == MotionEvent.ACTION_MOVE) {
-            float x = event.getX();
-
-            // mapping the screen distance to the rotate angle.
-            float delta = (x - mPrevX)*3.14f/360.0f;
-            mPrevX = x;
-
-            // TODO : Add another 3 arguments (x, y, z)
-            //        if you want to make rotate along with any axis.
-            nativeModelRotate(/*id=*/1, delta);
-        }
-        return false;
+        mRotateDetector.onTouchEvent(event);
+        mScaleDetector.onTouchEvent(event);
+        return true;
     }
 }

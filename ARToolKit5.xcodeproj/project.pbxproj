@@ -2715,9 +2715,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4AE25B76128861A700F271D2 /* Accelerate.framework in Frameworks */,
 				4A1B3AD512D2BC0600E92104 /* QTKit.framework in Frameworks */,
 				4A1B3AD612D2BC0600E92104 /* CoreVideo.framework in Frameworks */,
-				4AE25B76128861A700F271D2 /* Accelerate.framework in Frameworks */,
 				4A140B810FC4471300CDBA64 /* libAR.a in Frameworks */,
 				4A140B820FC4471300CDBA64 /* libARgsub_lite.a in Frameworks */,
 				4A140B830FC4471300CDBA64 /* libARvideo.a in Frameworks */,
@@ -9223,7 +9223,7 @@
 				HEADERMAP_INCLUDES_PROJECT_HEADERS = NO;
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
 				OTHER_CFLAGS = "-march=core2";
-				SDKROOT = macosx;
+				SDKROOT = macosx10.11;
 				WARNING_CFLAGS = "-Wall";
 			};
 			name = Debug;
@@ -9256,7 +9256,7 @@
 				HEADERMAP_INCLUDES_PROJECT_HEADERS = NO;
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
 				OTHER_CFLAGS = "-march=core2";
-				SDKROOT = macosx;
+				SDKROOT = macosx10.11;
 			};
 			name = Release;
 		};

@@ -562,7 +562,18 @@ AR_DLL_API     void arOSGFinal(AROSG *arOsg);
  *  @return    A pointer to osg::Node or NULL.
  *
  */
-AR_DLL_API     void* arOSGGetModelRawPtrById(AROSG *arOsg, int id);
+AR_DLL_API     void* arOSGGetModelRawPtrById(AROSG *arOsg, int index);
+
+/*!
+ *  @function
+ *  @abstract  Try to play or stop the animation with the given name in the model.
+ *
+ *  @param     arOsg Pointer to the AROSG settings structure to be disposed of.
+    @param     index The index of the model to calculate the intersection of. See arOSGLoadModel().
+ *  @param     name  The name of the animation, null for the firset matching one.
+ *  @param     pause Stop or play the animation
+ */
+AR_DLL_API     int arOSGSetModelSkeletalAnimationPlay(AROSG *arOsg, int index, const char* name, int pause);
 
 #ifdef __cplusplus
 }

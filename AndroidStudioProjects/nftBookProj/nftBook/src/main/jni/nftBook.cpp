@@ -71,6 +71,8 @@
 #include "VirtualEnvironment.h"
 #include "osgPlugins.h"
 
+#define DEBUG 1
+
 // ============================================================================
 //	Types
 // ============================================================================
@@ -137,7 +139,10 @@ extern "C" {
 	JNIEXPORT void JNICALL JNIFUNCTION_NATIVE(nativeDisplayParametersChanged(JNIEnv* env, jobject object, jint orientation, jint width, jint height, jint dpi));
 	JNIEXPORT void JNICALL JNIFUNCTION_NATIVE(nativeDrawFrame(JNIEnv* env, jobject obj));
 	JNIEXPORT void JNICALL JNIFUNCTION_NATIVE(nativeSetInternetState(JNIEnv* env, jobject obj, jint state));
-  JNIEXPORT void JNICALL JNIFUNCTION_NATIVE(nativeModelRotate(JNIEnv* env, jobject, jint id, jfloat deltaTheta));
+  JNIEXPORT void JNICALL JNIFUNCTION_NATIVE(nativeModelRotate(JNIEnv* env, jobject, jint id, jfloat dx, jfloat dy, jfloat dz));
+  JNIEXPORT void JNICALL JNIFUNCTION_NATIVE(nativeModelScale(JNIEnv* env, jobject, jint id, jfloat scale));
+  JNIEXPORT void JNICALL JNIFUNCTION_NATIVE(nativePlayPathAnimation(JNIEnv* env, jobject, jint id, jint pause));
+  JNIEXPORT void JNICALL JNIFUNCTION_NATIVE(nativePlaySkeletalAnimation(JNIEnv* env, jobject, jint id, jstring name, jint pause));
 };
 
 static void nativeVideoGetCparamCallback(const ARParam *cparam, void *userdata);
@@ -441,6 +446,7 @@ static int initNFT(ARParamLT *cparamLT, AR_PIXEL_FORMAT pixFormat)
     
     // KPM init.
     kpmHandle = kpmCreateHandle(cparamLT);
+
     if (!kpmHandle) {
         LOGE("Error: kpmCreatHandle.\n");
         return (false);
@@ -536,6 +542,17 @@ static void *loadNFTDataAsync(THREAD_HANDLE_T *threadHandle)
 
             if ((surfaceSet[surfaceSetCount] = ar2ReadSurfaceSet(markersNFT[i].datasetPathname, "fset", NULL)) == NULL ) {
                 LOGE("Error reading data from %s.fset\n", markersNFT[i].datasetPathname);
+            } else {
+              AR2SurfaceSetT *surface = surfaceSet[surfaceSetCount];
+
+              if (surface->surface && surface->surface[0].imageSet && surface->surface[0].imageSet->scale) {
+                AR2ImageT *image = surface->surface[0].imageSet->scale[0]; // Assume best scale (largest image) is first entry in array scale[index] (index is in range [0, surfaceSet->surface[0].imageSet->num - 1]).
+                float marker_width = image->xsize * 25.4f / image->dpi;
+                float marker_height = image->ysize * 25.4f / image->dpi;
+
+                LOGI("marker width is %f, height is %f.",\
+                  marker_width, marker_height);
+              }
             }
             LOGI("  Done.\n");
         
@@ -580,15 +597,17 @@ JNIEXPORT void JNICALL JNIFUNCTION_NATIVE(nativeVideoFrame(JNIEnv* env, jobject 
             return;
         } else {
             nftDataLoaded = true;
+
+            LOGD("nativeVideoFrame threadWaitQuit\n");
             threadWaitQuit(nftDataLoadingThreadHandle);
             threadFree(&nftDataLoadingThreadHandle); // Clean up.
         }
     }
     if (!gARViewInited) {
-        return; // Also, we won't track until the ARView has been inited.
 #ifdef DEBUG
         LOGD("nativeVideoFrame !ARVIEW\n");
 #endif        
+        return; // Also, we won't track until the ARView has been inited.
     }
 #ifdef DEBUG
     LOGD("nativeVideoFrame\n");
@@ -709,7 +728,7 @@ JNIEXPORT void JNICALL JNIFUNCTION_NATIVE(nativeSurfaceCreated(JNIEnv* env, jobj
 #ifdef DEBUG
     LOGI("nativeSurfaceCreated\n");
 #endif        
-	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 
 	glStateCacheFlush(); // Make sure we don't hold outdated OpenGL state.
 
@@ -900,12 +919,12 @@ JNIEXPORT void JNICALL JNIFUNCTION_NATIVE(nativeDrawFrame(JNIEnv* env, jobject o
     
     if (!videoInited) {
 #ifdef DEBUG
-        LOGI("nativeDrawFrame !VIDEO\n");
+     //   LOGI("nativeDrawFrame !VIDEO\n");
 #endif        
         return; // No point in trying to draw until video is inited.
     }
 #ifdef DEBUG
-    LOGI("nativeDrawFrame\n");
+   //  LOGI("nativeDrawFrame\n");
 #endif        
     if (!gARViewInited) {
         if (!initARView()) return;
@@ -918,7 +937,7 @@ JNIEXPORT void JNICALL JNIFUNCTION_NATIVE(nativeDrawFrame(JNIEnv* env, jobject o
         videoFrameNeedsPixelBufferDataUpload = false;
     }
     
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear the buffers for new frame.
+	 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear the buffers for new frame.
     
     // Display the current frame
     arglDispImage(gArglSettings);
@@ -983,6 +1002,20 @@ JNIEXPORT void JNICALL JNIFUNCTION_NATIVE(nativeDrawFrame(JNIEnv* env, jobject o
 #endif
 }
 
-JNIEXPORT void JNICALL JNIFUNCTION_NATIVE(nativeModelRotate(JNIEnv* env, jobject obj, jint id, jfloat deltaTheta)) {
-  VirtualEnvironmentHandleModelRotate(id, deltaTheta);
+JNIEXPORT void JNICALL JNIFUNCTION_NATIVE(nativeModelRotate(JNIEnv* env, jobject obj, jint id, jfloat dx, jfloat dy, jfloat dz)) {
+  VirtualEnvironmentHandleModelRotate(id, dx, dy, dz);
+}
+
+JNIEXPORT void JNICALL JNIFUNCTION_NATIVE(nativeModelScale(JNIEnv* env, jobject obj, jint id, jfloat scale)) {
+  VirtualEnvironmentHandleModelScale(id, scale);
+}
+
+
+JNIEXPORT void JNICALL JNIFUNCTION_NATIVE(nativePlayPathAnimation(JNIEnv* env, jobject obj, jint id, jint pause)) {
+  VirtualEnvironmentPlayPathAnimation(id, pause);
+}
+  
+JNIEXPORT void JNICALL JNIFUNCTION_NATIVE(nativePlaySkeletalAnimation(JNIEnv* env, jobject obj, jint id, jstring name, jint pause)) {
+  const char *name_ = env->GetStringUTFChars(name, NULL);
+  VirtualEnvironmentPlaySkeletalAnimation(id, name_, pause);
 }

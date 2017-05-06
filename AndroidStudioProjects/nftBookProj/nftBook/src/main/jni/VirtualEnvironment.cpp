@@ -257,6 +257,9 @@ int VirtualEnvironmentInit(const char *objectListFile)
         
         objectCount++;
 
+#ifdef DEBUG
+        ARLOG("Reading object data file %s done!\n", objectFullpath);
+#endif
     }
     
 #ifdef DEBUG
@@ -419,7 +422,7 @@ void VirtualEnvironmentSetTime(double timeInSeconds)
     arOSGSetDrawTime(VirtualEnvironment_AROSG, timeInSeconds);
 }
 
-void VirtualEnvironmentHandleModelRotate(int id, float deltaTheta) {
+void VirtualEnvironmentHandleModelRotate(int id, float dx, float dy, float dz) {
     if (!VirtualEnvironment_AROSG) return;
 
     osg::Node* node = reinterpret_cast<osg::Node*>(
@@ -441,9 +444,47 @@ void VirtualEnvironmentHandleModelRotate(int id, float deltaTheta) {
             center.x(), center.y(), center.z(), bsphere.radius());*/
 
     osg::Matrix mat = trans->getMatrix();
-    mat.postMultTranslate(osg::Vec3f(-center.x(), -center.y(), 0));
-    mat.postMultRotate(osg::Quat(deltaTheta, osg::Vec3f(0, 0, 1)));
-    mat.postMultTranslate(osg::Vec3f(center.x(), center.y(), 0));
+    mat.postMultTranslate(osg::Vec3f(-center.x(), -center.y(), -center.z()));
+    mat.postMultRotate(osg::Quat(dx, osg::Vec3f(1, 0, 0)));
+    mat.postMultRotate(osg::Quat(dy, osg::Vec3f(0, 1, 0)));
+    mat.postMultRotate(osg::Quat(dz, osg::Vec3f(0, 0, 1)));
+    mat.postMultTranslate(osg::Vec3f(center.x(), center.y(), center.z()));
 
     trans->setMatrix(mat);
 }
+
+void VirtualEnvironmentHandleModelScale(int id, float scale) {
+    if (!VirtualEnvironment_AROSG) return;
+
+    osg::Node* node = reinterpret_cast<osg::Node*>(
+                      arOSGGetModelRawPtrById(VirtualEnvironment_AROSG, id) );
+    
+    if (!node) return;
+
+    osg::MatrixTransform *trans = dynamic_cast<osg::MatrixTransform*>(node);
+
+    if (!trans) {
+      ARLOGe("not a matrix transform !!\n");
+      return;
+    }
+
+    const osg::BoundingSphere& bsphere = trans->getBound();
+    osg::Vec3f center = bsphere.center();
+
+    osg::Matrix mat = trans->getMatrix();
+    mat.postMultTranslate(osg::Vec3f(-center.x(), -center.y(), -center.z()));
+    mat.postMultScale(osg::Vec3f(scale, scale, scale));
+    mat.postMultTranslate(osg::Vec3f(center.x(), center.y(), center.z()));
+
+    trans->setMatrix(mat);
+}
+
+
+void VirtualEnvironmentPlayPathAnimation(int id, int pause) {
+    arOSGSetModelAnimationPause(VirtualEnvironment_AROSG, id, pause);
+}
+
+void VirtualEnvironmentPlaySkeletalAnimation(int id, const char *name, int pause) {
+    arOSGSetModelSkeletalAnimationPlay(VirtualEnvironment_AROSG, id, name, pause);
+}
+
